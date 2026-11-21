@@ -1,0 +1,161 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Reusable security primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidTheme(themeId) {
+      return themeId is string && themeId in ['lavender', 'aurora', 'rosewood', 'ocean'];
+    }
+
+    function isValidAvatarPreset(preset) {
+      return preset is string && preset in ['starlight', 'aurora', 'rosewood', 'ocean', 'gold'];
+    }
+
+    function isValidFounderProfile(data, userId) {
+      return data.keys().hasAll([
+               'userId', 'name', 'school', 'bloodGroup', 'aimInLife',
+               'city', 'hobby', 'motto', 'goodFriends', 'themeId',
+               'createdAt', 'updatedAt'
+             ]) &&
+             data.keys().hasOnly([
+               'userId', 'name', 'school', 'bloodGroup', 'aimInLife',
+               'city', 'hobby', 'motto', 'goodFriends', 'themeId',
+               'createdAt', 'updatedAt'
+             ]) &&
+             data.userId is string && data.userId == userId &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 60 &&
+             data.school is string && data.school.size() <= 100 &&
+             data.bloodGroup is string && data.bloodGroup.size() <= 20 &&
+             data.aimInLife is string && data.aimInLife.size() <= 300 &&
+             data.city is string && data.city.size() <= 80 &&
+             data.hobby is string && data.hobby.size() <= 80 &&
+             data.motto is string && data.motto.size() <= 160 &&
+             data.goodFriends is list && data.goodFriends.size() <= 20 &&
+             (data.goodFriends.size() == 0 || (data.goodFriends[0] is string && data.goodFriends[0].size() <= 40)) &&
+             isValidTheme(data.themeId) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidFriendEntry(data, userId) {
+      return data.keys().hasAll([
+               'userId', 'name', 'nickname', 'school', 'bloodGroup',
+               'city', 'hobby', 'aimInLife', 'note', 'avatarPreset',
+               'trophyId', 'trophyTitle', 'closeFriend', 'cheersCount',
+               'createdAt', 'updatedAt'
+             ]) &&
+             data.keys().hasOnly([
+               'userId', 'name', 'nickname', 'school', 'bloodGroup',
+               'city', 'hobby', 'aimInLife', 'note', 'avatarPreset',
+               'trophyId', 'trophyTitle', 'closeFriend', 'cheersCount',
+               'createdAt', 'updatedAt'
+             ]) &&
+             data.userId is string && data.userId == userId &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 60 &&
+             data.nickname is string && data.nickname.size() <= 40 &&
+             data.school is string && data.school.size() >= 1 && data.school.size() <= 100 &&
+             data.bloodGroup is string && data.bloodGroup.size() >= 1 && data.bloodGroup.size() <= 20 &&
+             data.city is string && data.city.size() <= 80 &&
+             data.hobby is string && data.hobby.size() <= 80 &&
+             data.aimInLife is string && data.aimInLife.size() >= 1 && data.aimInLife.size() <= 300 &&
+             data.note is string && data.note.size() <= 300 &&
+             isValidAvatarPreset(data.avatarPreset) &&
+             data.trophyId is string && data.trophyId.size() >= 3 && data.trophyId.size() <= 24 &&
+             data.trophyTitle is string && data.trophyTitle.size() >= 1 && data.trophyTitle.size() <= 60 &&
+             data.closeFriend is bool &&
+             data.cheersCount is int && data.cheersCount >= 0 && data.cheersCount <= 100000 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    // Per-user Founder Profile collection
+    match /users/{userId}/founder_profile/{profileId} {
+      allow get: if isOwner(userId) && isValidId(profileId);
+      allow list: if isOwner(userId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(profileId) &&
+                       isValidFounderProfile(incoming(), userId);
+
+      allow update: if isOwner(userId) &&
+                       isValidId(profileId) &&
+                       isValidFounderProfile(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt && (
+                         // Action: Update Founder Details
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'name', 'school', 'bloodGroup', 'aimInLife',
+                           'city', 'hobby', 'motto', 'goodFriends', 'updatedAt'
+                         ]) ||
+                         // Action: Switch Glassmorphic Theme
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'themeId', 'updatedAt'
+                         ])
+                       );
+
+      allow delete: if isOwner(userId) && isValidId(profileId);
+    }
+
+    // Per-user Published Friends & Trophy Hall collection
+    match /users/{userId}/friends/{friendId} {
+      allow get: if isOwner(userId) && isValidId(friendId);
+      allow list: if isOwner(userId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(friendId) &&
+                       isValidFriendEntry(incoming(), userId);
+
+      allow update: if isOwner(userId) &&
+                       isValidId(friendId) &&
+                       isValidFriendEntry(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().trophyId == existing().trophyId && (
+                         // Action: Edit Friend Profile Details
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'name', 'nickname', 'school', 'bloodGroup',
+                           'city', 'hobby', 'aimInLife', 'note',
+                           'avatarPreset', 'trophyTitle', 'closeFriend', 'updatedAt'
+                         ]) ||
+                         // Action: Toggle Close Friend Status
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'closeFriend', 'updatedAt'
+                         ]) ||
+                         // Action: Celebrate / Cheer Trophy
+                         (
+                           incoming().diff(existing()).affectedKeys().hasOnly([
+                             'cheersCount', 'updatedAt'
+                           ]) &&
+                           incoming().cheersCount == existing().cheersCount + 1
+                         )
+                       );
+
+      allow delete: if isOwner(userId) && isValidId(friendId);
+    }
+  }
+}

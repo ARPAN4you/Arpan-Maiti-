@@ -1,0 +1,152 @@
+{
+  "entities": {
+    "FounderProfile": {
+      "title": "FounderProfile",
+      "description": "Customizable founder profile and visual theme settings for Friends Portfolio by Arpan.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Firebase user UID who owns this portfolio."
+        },
+        "name": {
+          "type": "string",
+          "description": "Founder display name (default Arpan)."
+        },
+        "school": {
+          "type": "string",
+          "description": "Founder school or institution."
+        },
+        "bloodGroup": {
+          "type": "string",
+          "description": "Founder blood group."
+        },
+        "aimInLife": {
+          "type": "string",
+          "description": "Founder personal aim in life statement."
+        },
+        "city": {
+          "type": "string",
+          "description": "Founder hometown or city."
+        },
+        "hobby": {
+          "type": "string",
+          "description": "Founder favorite hobby or interest."
+        },
+        "motto": {
+          "type": "string",
+          "description": "Personal motto or signature tagline."
+        },
+        "goodFriends": {
+          "type": "array",
+          "description": "Bounded list of featured good friend names (max 20)."
+        },
+        "themeId": {
+          "type": "string",
+          "enum": ["lavender", "aurora", "rosewood", "ocean"],
+          "description": "Selected glassmorphic color theme identifier."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when created (clients must submit FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when last updated (clients must submit FieldValue.serverTimestamp())."
+        }
+      },
+      "required": ["userId", "name", "school", "bloodGroup", "aimInLife", "city", "hobby", "motto", "goodFriends", "themeId", "createdAt", "updatedAt"]
+    },
+    "FriendEntry": {
+      "title": "FriendEntry",
+      "description": "A published friend portfolio card and associated golden trophy hall honor.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Firebase user UID who owns this friend portfolio."
+        },
+        "name": {
+          "type": "string",
+          "description": "Friend full name."
+        },
+        "nickname": {
+          "type": "string",
+          "description": "Friend nickname or title."
+        },
+        "school": {
+          "type": "string",
+          "description": "Friend school or institution."
+        },
+        "bloodGroup": {
+          "type": "string",
+          "description": "Friend blood group."
+        },
+        "city": {
+          "type": "string",
+          "description": "Friend city or hometown."
+        },
+        "hobby": {
+          "type": "string",
+          "description": "Friend favorite hobby."
+        },
+        "aimInLife": {
+          "type": "string",
+          "description": "Friend aim in life statement."
+        },
+        "note": {
+          "type": "string",
+          "description": "Special friendship memory or personal note."
+        },
+        "avatarPreset": {
+          "type": "string",
+          "enum": ["starlight", "aurora", "rosewood", "ocean", "gold"],
+          "description": "Visual avatar preset style when no local photo is set."
+        },
+        "trophyId": {
+          "type": "string",
+          "description": "Unique golden trophy badge identifier such as TRP-1042."
+        },
+        "trophyTitle": {
+          "type": "string",
+          "description": "Trophy Hall honor title awarded to this friend."
+        },
+        "closeFriend": {
+          "type": "boolean",
+          "description": "Whether this friend is highlighted in the Good Friends inner circle."
+        },
+        "cheersCount": {
+          "type": "integer",
+          "description": "Number of celebration cheers awarded in the Trophy Hall."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when published (clients must submit FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when last updated (clients must submit FieldValue.serverTimestamp())."
+        }
+      },
+      "required": ["userId", "name", "nickname", "school", "bloodGroup", "city", "hobby", "aimInLife", "note", "avatarPreset", "trophyId", "trophyTitle", "closeFriend", "cheersCount", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/founder_profile/{profileId}": {
+      "schema": {
+        "$ref": "#/entities/FounderProfile"
+      },
+      "description": "Per-user customizable founder profile and active glassmorphic theme."
+    },
+    "/users/{userId}/friends/{friendId}": {
+      "schema": {
+        "$ref": "#/entities/FriendEntry"
+      },
+      "description": "Per-user published friend portfolio entries and Trophy Hall honors."
+    }
+  }
+}

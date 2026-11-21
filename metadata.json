@@ -1,0 +1,6 @@
+{
+  "name": "Friends Portfolio",
+  "description": "Interactive glassmorphic friends portfolio by Arpan featuring founder profile, friends showcase, live profile publisher, and trophy hall.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
